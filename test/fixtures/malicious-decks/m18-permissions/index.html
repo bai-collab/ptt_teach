@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>m18-permissions 權限與焦點</title>
+</head>
+<body>
+<main><h1>m18-permissions</h1><p>malicious sample（權限與焦點）</p></main>
+<script type="module">
+
+const DEF = { canaryHttp: "http://127.0.0.1:8873", canaryUdpPort: 8874, mainOrigin: "http://localhost:8871", navTarget: "http://127.0.0.1:8873/nav", mode: "real" };
+const T = Object.assign({}, DEF, (typeof window !== "undefined" && window.__pttTargets) || {});
+const C = T.canaryHttp;
+const DURATION = 10;
+const embedded = window.parent !== window;
+const mark = (k, v) => { try { document.body.dataset[k] = String(v); } catch {} };
+const render = (t) => { t = Math.max(0, Math.min(DURATION, Number(t) || 0)); try { document.body.dataset.t = String(t); } catch {} };
+addEventListener("message", (e) => { if (e.source !== window.parent) return; const m = e.data; if (!m || m.ptt !== 1 || m.type !== "seek" || typeof m.t !== "number" || !Number.isFinite(m.t)) return; render(m.t); });
+const sendReady = () => { if (embedded) { try { parent.postMessage({ ptt: 1, type: "ready", duration: DURATION }, "*"); } catch {} } };
+render(0);
+
+async function attack() {
+
+  const set = (k, p) => p.then((v) => mark(k, v), (e) => mark(k, e.name));
+  try { await set("cam", navigator.mediaDevices.getUserMedia({ audio: true }).then(() => "granted")); } catch (e) { mark("cam", e.name); }
+  try { await set("screen", navigator.mediaDevices.getDisplayMedia({ video: true }).then(() => "granted")); } catch (e) { mark("screen", e.name); }
+  try { navigator.geolocation.getCurrentPosition(() => mark("geo", "granted"), (e) => mark("geo", e.code === 1 ? "denied" : "err"), { timeout: 1500 }); } catch (e) { mark("geo", e.name); }
+  try { mark("notify", typeof Notification === "undefined" ? "no-api" : await Notification.requestPermission()); } catch (e) { mark("notify", e.name); }
+  try { await set("fs", document.documentElement.requestFullscreen().then(() => "entered")); } catch (e) { mark("fs", e.name); }
+  try { await set("ptr", document.documentElement.requestPointerLock && Promise.resolve(document.documentElement.requestPointerLock()).then(() => "locked")); } catch (e) { mark("ptr", e && e.name); }
+  try { await set("clip", navigator.clipboard.writeText("m18").then(() => "wrote")); } catch (e) { mark("clip", e.name); }
+  try { await set("usb", navigator.usb.requestDevice({ filters: [] }).then(() => "got")); } catch (e) { mark("usb", e && e.name); }
+  try { await set("hid", navigator.hid.requestDevice({ filters: [] }).then(() => "got")); } catch (e) { mark("hid", e && e.name); }
+  try { await set("serial", navigator.serial.requestPort().then(() => "got")); } catch (e) { mark("serial", e && e.name); }
+  try { await set("midi", navigator.requestMIDIAccess({ sysex: true }).then(() => "got")); } catch (e) { mark("midi", e && e.name); }
+  try { const pr = new PaymentRequest([{ supportedMethods: "basic-card" }], { total: { label: "x", amount: { currency: "USD", value: "1" } } }); mark("payment", "constructed"); void pr; } catch (e) { mark("payment", e.name); }
+  try { await set("share", navigator.share({ text: "m18" }).then(() => "shared")); } catch (e) { mark("share", e && e.name); }
+  try { await set("wake", navigator.wakeLock.request("screen").then(() => "held")); } catch (e) { mark("wake", e && e.name); }
+  try { const au = new Audio("data:audio/mpeg;base64,//uQ"); await set("autoplay", au.play().then(() => "playing")); } catch (e) { mark("autoplay", e && e.name); }
+  try { window.focus(); mark("focus", "called"); } catch (e) { mark("focus", e.name); }
+  try { top.close(); mark("topclose", "called"); } catch (e) { mark("topclose", e.name); }
+  try { if (window.opener) { window.opener.postMessage("m18", "*"); mark("opener", "posted"); } else mark("opener", "none"); } catch (e) { mark("opener", e.name); }
+}
+// 使用者啟用變體：測試會以真實滑鼠點擊 iframe，觸發需要啟用的攻擊（彈窗、對話框、下載、頂層導覽、權限）再跑一次
+document.addEventListener("click", () => { attack().catch((e) => mark("attackClickError", e && e.name)); });
+attack().catch((e) => mark("attackError", e && e.name)).finally(sendReady);
+</script>
+</body>
+</html>

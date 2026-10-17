@@ -1,0 +1,35 @@
+# 複製成 .dev.vars（已被 git 忽略）。不要把真正的值寫進文件或 commit。
+# 建場密語（選用的備援建場方式；不設定就只能用 Google 登入建場）
+CREATE_SECRET=請改成一組只有講師知道的密語
+# Google OAuth 用戶端 ID（公開值，但不放進公開 repo；改由本機 .dev.vars 與 Cloudflare 變數提供）
+GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+# 管理者 Gmail，可用逗號分隔多個；管理者可在網頁維護講師名單
+ADMIN_EMAILS=admin@example.test
+# 以下兩項只供本機自動測試：`npm run test-auth` 會自動寫入（假 Google 公鑰），不要手動設到正式環境
+# ENVIRONMENT=development
+# DEV_LOGIN=1
+# 以下兩項只供本機驗收簡報庫（scripts/smoke-decks.mjs 會自己用 --var 打開），預設關閉，不要設到正式環境。
+# 只在 ENVIRONMENT=development、請求主機名是迴環位址（localhost／127.0.0.1／[::1]）、而且是管理者時才有作用；否則端點一律 404。
+# DEV_CLOCK=1：測試時鐘接縫 POST /api/dev/clock（{ offsetMs, quotaBytes }；quotaBytes 只能把簡報庫總容量上限調低）
+# DEV_INSPECT=1：開發用檢視端點 GET /api/dev/r2?prefix=decks/…（只回傳鍵、大小、etag、上傳時間、Content-Type，不回傳內容）、
+#                GET /api/dev/catalog/ready-deck?id=&version=、GET /api/dev/catalog/cleanup?prefix=decks/…
+# DEV_CLOCK=0
+# DEV_INSPECT=0
+# 簡報主機（deck-host/）的精確 origin（S3d-B）：live 頁 CSP 的 frame-src 與簡報網址都由它產生。
+# 本機：主站用 http://localhost:8801 開，簡報主機在 http://127.0.0.1:8802（主機名不同＝不同站，cookie 不共用）。
+# 未設定時本機開發預設就是下面這個值；正式環境必須在 Cloudflare 後台設定 https 的簡報主機 origin。
+DECK_ORIGIN=http://127.0.0.1:8802
+# 簡報主機（deck-host/，S4-A）的 MAIN_ORIGIN：主站的精確 origin，簡報主機 CSP 的 frame-ancestors 只允許它嵌入簡報。
+# 注意：簡報主機以 wrangler dev -c deck-host/wrangler.toml 啟動時「不會讀這份 .dev.vars」，請在指令加上
+#   --var ENVIRONMENT:development --var MAIN_ORIGIN:http://localhost:8801（README 的手動啟動指令已附上）。
+# 正式環境在 Cloudflare 後台替簡報主機設定 https 的主站 origin；未設定或不合格（萬用字元、多個值、http、與簡報主機同主機名）
+# 時 frame-ancestors 一律 'none'（fail closed，簡報無法顯示）。沒有任何能停用或放寬簡報主機 CSP 的設定。
+# S8 單頁 AI 問答（選用）：研習者針對目前這一頁提問，Worker 以 NMKING 回答（只回文字＋Markdown）。
+# 不設定 NMKING_API_KEY 時 /api/rooms/:code/ask 回 503「AI 問答未設定」，live 頁其他功能不受影響。
+# 正式環境用 wrangler secret put NMKING_API_KEY 設定（機密），不要寫進 wrangler.toml 或 commit。
+NMKING_API_KEY=
+# 模型（選填）；未設定時用 openai/gpt-5.6-luna。
+NMKING_MODEL=
+# NMKING_ENDPOINT 只供本機測試（scripts/smoke-ask.mjs 以 --var 指向本機假伺服器）；
+# 只在 ENVIRONMENT=development＋迴環主機名時生效，其他情況一律使用正式端點。不要設到正式環境。
+# NMKING_ENDPOINT=

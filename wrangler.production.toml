@@ -1,0 +1,56 @@
+# 自動產生：node scripts/build-builtin-decks.mjs（來源 wrangler.toml）。請勿手動修改。
+# 正式部署（方案 B：不使用 R2，簡報上傳停用，只提供內建簡報）。
+name = "ptt-teach"
+main = "src/worker.js"
+# 不可晚於本機 wrangler 內附 workerd 支援的日期（升級 wrangler 後若啟動失敗，先把日期調早）
+compatibility_date = "2026-08-15"
+# 部署時保留在 Cloudflare 後台設定的變數（GOOGLE_CLIENT_ID、ADMIN_EMAILS 等），不被這份檔案覆蓋（需在所有 [table] 之前）
+keep_vars = true
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+# live 頁也經過 Worker（S3d-B）：由 Worker 產生含精確 frame-src（簡報主機 origin）的 CSP
+run_worker_first = ["/api/*", "/live", "/live.html"]
+
+[[durable_objects.bindings]]
+name = "ROOM"
+class_name = "Room"
+
+[[durable_objects.bindings]]
+name = "AUTH"
+class_name = "Auth"
+
+# 簡報庫目錄（S3c-1）：獨立於 Auth DO；簡報主機（S3d-B）只綁這個 DO 的唯讀方法
+[[durable_objects.bindings]]
+name = "CATALOG"
+class_name = "Catalog"
+
+# 上傳的簡報檔案（S3c-1）。部署前需先在 Cloudflare 建立這個 bucket
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Room"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["Auth"]
+
+[[migrations]]
+tag = "v3"
+new_sqlite_classes = ["Catalog"]
+
+# 公開設定（非機密）。這裡刻意不寫 GOOGLE_CLIENT_ID 與 ADMIN_EMAILS：
+# - 本機開發：寫在 .dev.vars（已被 git 忽略，範本見 .dev.vars.example）
+# - 部署：在 Cloudflare 後台 Settings → Variables and Secrets 設定（有 keep_vars，之後部署不會被洗掉）
+# DECK_ORIGIN（S3d-B）：簡報主機（deck-host/）的精確 origin，例如 https://<簡報主機網域>（不加路徑與結尾斜線）。
+#   同樣不寫在這裡：寫在這裡會在每次部署時蓋掉後台的值。正式環境只接受 https，且主機名不得與主站相同；
+#   未設定或不合格時 live 頁不載入簡報（fail closed）。本機開發未設定時預設 http://127.0.0.1:8802（主站請用 localhost 開）。
+[vars]
+ENVIRONMENT = "production"
+
+# 本機 8787 常被其他服務佔用，改用 8801
+[dev]
+port = 8801
+
+# 選用的備援機密：CREATE_SECRET（建場密語）。不設定就只能用 Google 登入建場。

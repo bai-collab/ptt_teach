@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>研習進行中｜AI 時代，教育真正要改變什麼？</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&family=Noto+Sans+TC:wght@400;700&display=swap">
+<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/live.css">
+<body class="live">
+<header class="bar">
+  <span class="code">研習碼 <b id="code"></b></span>
+  <span class="conn" id="conn">連線中…</span>
+  <span id="people" title="目前在線人數">在線 0 人</span>
+  <span class="role" id="roleTag" hidden>講師</span>
+  <button id="rosterBtn" type="button" hidden aria-expanded="false" aria-controls="roster">跟隨 0・自由 0</button>
+  <span class="spacer"></span>
+  <button id="followBtn" type="button" aria-pressed="true" hidden>跟隨講師中</button>
+  <button id="copyJoin" type="button" hidden>複製加入連結</button>
+  <button id="endBtn" type="button" hidden>結束並刪除</button>
+</header>
+<main class="main">
+  <div class="stage" id="stage">
+    <!-- 簡報由獨立 origin 的簡報主機提供（S3d-B）：sandbox 只有 allow-scripts（不透明 origin），不送 referrer；網址由 live.js 依場次設定 -->
+    <iframe id="deck" src="about:blank" sandbox="allow-scripts" referrerpolicy="no-referrer" title="動畫簡報"></iframe>
+    <div class="deck-hold" id="deckHold">簡報載入中…</div>
+    <div class="disc" id="disc" hidden>
+      <div class="scaler" id="scaler">
+        <div id="board"></div>
+      </div>
+    </div>
+    <!-- 標註層：蓋在動畫與討論板上，以 1600×900 邏輯座標縮放；筆跡＋講師文字 -->
+    <div class="marks">
+      <div class="scaler" id="mscaler">
+        <canvas id="ink" width="3200" height="1800" aria-label="共用標註區"></canvas>
+        <div id="labels"></div>
+        <input id="labelInput" type="text" maxlength="60" placeholder="輸入文字，按 Enter 放上；Esc 取消" hidden aria-label="文字標註">
+      </div>
+    </div>
+  </div>
+</main>
+<div class="tools" id="tools" hidden>
+  <form id="composer" class="row" style="flex:1 1 420px">
+    <select id="sel1" hidden aria-label="選擇"></select>
+    <select id="sel2" hidden aria-label="選擇"></select>
+    <input id="text" type="text" maxlength="100" placeholder="寫下你的想法（最多 100 字）" autocomplete="off">
+    <button class="primary" type="submit">送出</button>
+  </form>
+  <span class="sep" id="toolSep"></span>
+  <div class="row" id="inkTools">
+    <button id="penBtn" type="button" aria-pressed="false">畫筆</button>
+    <button id="textBtn" type="button" aria-pressed="false" hidden>文字</button>
+    <span id="swatches" class="row"></span>
+    <button id="undoBtn" type="button">收回我的上一筆</button>
+    <button id="authorBtn" type="button" hidden aria-pressed="false">顯示作者</button>
+    <button id="clearBtn" type="button" hidden>清除本頁標註</button>
+    <button id="resetVote" type="button" hidden>重設投票</button>
+  </div>
+</div>
+<footer class="nav">
+  <button id="prev" type="button">上一頁</button>
+  <button id="play" type="button">播放</button>
+  <button id="next" type="button">下一頁</button>
+  <span id="pageInfo"></span>
+  <button id="askBtn" type="button" hidden aria-expanded="false" aria-controls="askPanel">問 AI</button>
+  <span class="spacer"></span>
+  <span id="followHint"></span>
+</footer>
+<aside id="roster" hidden aria-label="研習者名單">
+  <h2>研習者名單</h2>
+  <p class="hint">只有講師看得到。自由觀看者排在前面。</p>
+  <ul id="rosterList"></ul>
+</aside>
+<aside id="askPanel" hidden aria-label="針對這一頁問 AI">
+  <div class="ask-head"><h2>問 AI：這一頁</h2><button id="askClose" type="button" aria-label="關閉">✕</button></div>
+  <p class="hint" id="askPage"></p>
+  <form id="askForm">
+    <textarea id="askInput" maxlength="300" rows="3" placeholder="針對這一頁的內容提問（最多 300 字）"></textarea>
+    <div class="ask-row"><span id="askCount" class="hint">0 / 300</span><button class="primary" id="askSend" type="submit">送出</button></div>
+  </form>
+  <div id="askAnswer" aria-live="polite"></div>
+  <p class="hint">AI 只根據這一頁的文字回答，可能有誤；問題與回答不會被保存。</p>
+</aside>
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="overlay" hidden><div id="overlayText"></div><a href="/">回到加入頁</a></div>
+<script src="/live.js"></script>
+</body>
+</html>

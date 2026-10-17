@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>m17-history history 洪泛</title>
+</head>
+<body>
+<main><h1>m17-history</h1><p>malicious sample（history 洪泛）</p></main>
+<script type="module">
+
+const DEF = { canaryHttp: "http://127.0.0.1:8873", canaryUdpPort: 8874, mainOrigin: "http://localhost:8871", navTarget: "http://127.0.0.1:8873/nav", mode: "real" };
+const T = Object.assign({}, DEF, (typeof window !== "undefined" && window.__pttTargets) || {});
+const C = T.canaryHttp;
+const DURATION = 10;
+const embedded = window.parent !== window;
+const mark = (k, v) => { try { document.body.dataset[k] = String(v); } catch {} };
+const render = (t) => { t = Math.max(0, Math.min(DURATION, Number(t) || 0)); try { document.body.dataset.t = String(t); } catch {} };
+addEventListener("message", (e) => { if (e.source !== window.parent) return; const m = e.data; if (!m || m.ptt !== 1 || m.type !== "seek" || typeof m.t !== "number" || !Number.isFinite(m.t)) return; render(m.t); });
+const sendReady = () => { if (embedded) { try { parent.postMessage({ ptt: 1, type: "ready", duration: DURATION }, "*"); } catch {} } };
+render(0);
+
+async function attack() {
+
+  try { history.pushState({}, "", "m17state"); mark("pushState", "ok"); } catch (e) { mark("pushState", e.name); }
+  try { history.replaceState({}, "", "m17replace"); mark("replaceState", "ok"); } catch (e) { mark("replaceState", e.name); }
+  for (let i = 0; i < 50; i++) { try { history.back(); } catch (e) {} try { history.go(-1); } catch (e) {} }
+  mark("histFlood", "1");
+}
+// 使用者啟用變體：測試會以真實滑鼠點擊 iframe，觸發需要啟用的攻擊（彈窗、對話框、下載、頂層導覽、權限）再跑一次
+document.addEventListener("click", () => { attack().catch((e) => mark("attackClickError", e && e.name)); });
+attack().catch((e) => mark("attackError", e && e.name)).finally(sendReady);
+</script>
+</body>
+</html>

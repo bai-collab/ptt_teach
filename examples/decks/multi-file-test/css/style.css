@@ -1,0 +1,40 @@
+@font-face {
+  font-family: "Plex Mono Test";
+  src: url("../assets/fonts/ibm-plex-mono-latin-400-normal.woff2") format("woff2");
+  font-weight: 400;
+  font-display: block;
+}
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: #0d1117 url("../assets/img/tile.png") repeat;
+  color: #e6edf3;
+  font: 4vh/1.4 system-ui, "Noto Sans TC", sans-serif;
+  display: grid;
+  place-items: center;
+}
+.stage {
+  width: min(92vw, 160vh * 0.9);
+  padding: 4vh 4vw;
+  background: rgba(13, 17, 23, 0.92);
+  border: 0.4vh solid #30363d;
+  border-radius: 2vh;
+  text-align: center;
+}
+.stage img { height: 12vh; width: 12vh; }
+h1 { margin: 1vh 0; font-size: 6vh; }
+.time {
+  font-family: "Plex Mono Test", monospace;
+  font-size: 8vh;
+  color: #ffd33d;
+  letter-spacing: 0.1em;
+}
+.seg { margin: 1vh 0; color: #7fb6d9; }
+.bar { height: 1.6vh; background: #30363d; border-radius: 1vh; overflow: hidden; }
+.bar > i { display: block; height: 100%; width: 0; background: #1f6feb; }
+.status { margin-top: 2vh; font: 2.4vh/1.4 "Plex Mono Test", monospace; color: #8b949e; }
+/* slides/*.html 共用 */
+.slide { width: min(92vw, 160vh * 0.9); padding: 6vh 5vw; }
+.slide h1 { color: #ffd33d; }
+.slide p { margin: 1.5vh 0; }

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>加入研習｜AI 時代，教育真正要改變什麼？</title>
+<link rel="stylesheet" href="/style.css">
+<main class="card">
+  <h1>加入研習</h1>
+  <p>輸入講師提供的 6 碼研習碼。加入後可以跟著講師翻頁，也可以自由瀏覽；討論頁可以留言、投票和手寫。</p>
+  <form id="f">
+    <label for="code">研習碼</label>
+    <input id="code" class="code-input" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" required>
+    <label for="name">暱稱（顯示在你的留言上）</label>
+    <input id="name" maxlength="16" placeholder="例如：研習老師">
+    <p class="hint">留言與筆跡會被本場所有人看到，並在建場 7 天後自動刪除。請不要寫入學生姓名或其他個人資料。講師可以看到你的暱稱、你投了哪一項、哪些筆跡是你畫的，以及你正在跟隨或自由觀看、在哪一頁；其他研習者只看得到票數，看不到你投了什麼。</p>
+    <button class="primary" type="submit" style="width:100%">加入</button>
+    <p class="msg" id="msg" role="alert"></p>
+  </form>
+  <p class="hint">講師：<a href="/teacher.html">講師入口（Google 登入）</a></p>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const qs=new URLSearchParams(location.search);
+$('code').value=(qs.get('code')||'').toUpperCase();
+$('name').value=localStorage.getItem('aee.name')||'';
+if($('code').value) $('name').focus();
+$('code').addEventListener('input',e=>{e.target.value=e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'')});
+$('f').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const code=$('code').value.trim().toUpperCase();
+  if(!/^[A-Z0-9]{6}$/.test(code)){$('msg').textContent='研習碼是 6 個英文或數字';return}
+  $('msg').textContent='確認中…';
+  try{
+    const r=await fetch('/api/rooms/'+code); const d=await r.json();
+    if(!r.ok||!d.exists){$('msg').textContent='找不到這個研習碼，或本場已結束';return}
+    localStorage.setItem('aee.name',$('name').value.trim());
+    location.href='/live.html?code='+code;
+  }catch{$('msg').textContent='連線失敗，請稍後再試'}
+});
+</script>
+</html>

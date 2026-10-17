@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>講師入口｜AI 時代，教育真正要改變什麼？</title>
+<link rel="stylesheet" href="/style.css">
+<style>
+.card.wide{max-width:760px}
+.section{margin-top:22px;padding-top:16px;border-top:1px solid rgba(239,233,216,.15)}
+.section h2{font-family:var(--font-chalk);font-size:1.25rem;margin:0 0 10px}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid rgba(239,233,216,.12);vertical-align:middle}
+th{color:var(--chalk-dim);font-weight:400}
+td .code{font-family:var(--font-chalk);font-size:1.2rem;letter-spacing:.12em;color:var(--yellow)}
+td button,td a.btn{font-size:.82rem;padding:.25em .8em;margin:2px 2px 2px 0}
+a.btn{display:inline-block;border:1.5px solid var(--chalk-dim);border-radius:999px;color:var(--chalk);text-decoration:none}
+a.btn:hover{border-color:var(--yellow);color:var(--yellow)}
+.who{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.who .spacer{flex:1}
+.newroom{margin-top:12px;padding:14px;border:2px dashed var(--yellow);border-radius:10px}
+.create-room-section .deck-picker{display:grid;gap:6px;max-width:100%;margin:12px 0}
+.create-room-section .deck-picker select,.create-room-section #create{box-sizing:border-box;width:100%;max-width:100%;min-height:44px}
+.create-room-section button,.create-room-section a.btn{box-sizing:border-box;min-height:44px}
+.create-room-section .newroom{box-sizing:border-box;max-width:100%}
+.create-room-section .newroom .row{flex-wrap:wrap}
+.create-room-section .newroom .row input{box-sizing:border-box;flex:1 1 12rem;min-width:0}
+.create-room-section .newroom a.btn{display:inline-flex;align-items:center}
+#gbtn{min-height:44px;margin:10px 0}
+.badge{font-size:.78rem;border:1px solid var(--yellow);color:var(--yellow);border-radius:6px;padding:0 6px;margin-left:6px}
+@media(max-width:420px){.create-room-section .newroom .row input{flex-basis:100%;width:100%}}
+</style>
+<main class="card wide">
+  <section id="login" hidden>
+    <h1>講師入口</h1>
+    <p>用講師名單上的 Google 帳號登入，就能建立研習碼、管理自己的場次。</p>
+    <div id="gbtn"></div>
+    <p class="msg" id="loginMsg" role="alert"></p>
+    <p class="hint" id="noGoogle" hidden>這個網站還沒有設定 Google 登入（GOOGLE_CLIENT_ID）。</p>
+    <p class="hint" id="secretLink" hidden>備援：<a href="/create.html">用建場密語建立場次</a></p>
+    <form id="devForm" class="newroom" hidden>
+      <strong>本機測試登入</strong>
+      <p class="hint">只在本機開發模式出現，正式網站不會有。輸入管理者或講師名單上的信箱即可登入，不經過 Google。</p>
+      <div class="row"><input id="devEmail" type="email" required placeholder="例如 admin@example.test"><button class="primary" type="submit">測試登入</button></div>
+    </form>
+  </section>
+
+  <section id="app" hidden>
+    <div class="who">
+      <h1 style="margin:0">講師入口</h1>
+      <span class="spacer"></span>
+      <span id="meText" class="hint"></span>
+      <button id="logout" type="button">登出</button>
+    </div>
+
+    <div class="section create-room-section">
+      <h2>建立新場次</h2>
+      <p class="hint">建立後立即可用；建場 7 天後自動刪除留言、投票與筆跡，也可以在講師畫面提前「結束並刪除」。</p>
+      <div class="deck-picker">
+        <label for="deckSelect">選擇簡報</label>
+        <select id="deckSelect">
+          <option value="">內建範例（無動畫檔）</option>
+        </select>
+        <p class="msg" id="deckMsg" role="alert" aria-live="polite"></p>
+      </div>
+      <button id="create" class="primary" type="button">建立新場次</button>
+      <div class="newroom" id="newroom" hidden>
+        <div>研習碼</div>
+        <div class="big-code" id="newCode"></div>
+        <label for="newJoin">給研習者的加入連結</label>
+        <div class="row"><input id="newJoin" readonly><button type="button" data-copy="newJoin">複製</button></div>
+        <p><a class="btn" id="newOpen" href="#" style="padding:.4em 1em;margin-top:10px">開啟講師畫面 ›</a></p>
+      </div>
+      <p class="msg" id="createMsg" role="alert"></p>
+    </div>
+
+    <div class="section">
+      <h2>我的場次</h2>
+      <p class="hint">登入後開啟講師畫面就是講師身分，不需要講師連結。「備援講師連結」可交給助教或在未登入的電腦使用，持有者可以控制翻頁與刪除留言，請勿公開。</p>
+      <table>
+        <thead><tr><th>研習碼</th><th>建立時間</th><th>自動刪除</th><th>在線</th><th>操作</th></tr></thead>
+        <tbody id="rooms"><tr><td colspan="5" class="hint">載入中…</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="section" id="adminSec" hidden>
+      <h2>講師名單 <span class="badge">管理者</span></h2>
+      <p class="hint">名單上的 Google 帳號可以登入建場。移除後，對方的登入立即失效。管理者本身由部署設定（ADMIN_EMAILS）決定。</p>
+      <form id="addForm" class="row">
+        <input id="addEmail" type="email" placeholder="講師的 Gmail" required>
+        <button class="primary" type="submit">加入名單</button>
+      </form>
+      <p class="msg" id="adminMsg" role="alert"></p>
+      <table>
+        <thead><tr><th>信箱</th><th>加入者</th><th>加入時間</th><th></th></tr></thead>
+        <tbody id="presenters"></tbody>
+      </table>
+    </div>
+
+    <div class="section" id="aiSec" hidden>
+      <h2>AI 問答設定 <span class="badge">管理者</span></h2>
+      <p class="hint">研習畫面的「問 AI」使用 NMKING。金鑰只存在伺服器，儲存後網頁不會再顯示金鑰內容，只顯示末 4 碼。</p>
+      <p id="aiStatus" class="hint">載入中…</p>
+      <form id="aiForm" autocomplete="off">
+        <div class="row">
+          <input id="aiKey" type="password" autocomplete="new-password" spellcheck="false" placeholder="NMKING API 金鑰（只改模型時可留空）" aria-label="NMKING API 金鑰">
+        </div>
+        <div class="row">
+          <input id="aiModel" type="text" spellcheck="false" placeholder="模型（選填，預設 openai/gpt-5.6-luna）" aria-label="模型">
+          <button class="primary" type="submit">儲存</button>
+          <button id="aiClear" type="button">清除網頁設定</button>
+        </div>
+      </form>
+      <p class="msg" id="aiMsg" role="alert"></p>
+    </div>
+
+    <div class="section decklib" id="deckSec" data-state="idle" hidden>
+      <h2>簡報庫 <span class="badge">管理者</span></h2>
+      <p class="hint">上傳 deck.zip（最上層有 deck.json）。瀏覽器會先解壓並檢查路徑、大小與雜湊，不會預覽檔案內容；伺服器會再檢查一次。單檔最大 10 MB、合計 60 MB、最多 300 個檔案。</p>
+      <div class="row">
+        <label class="filebtn primary" for="deckFile">選擇 deck.zip</label>
+        <input id="deckFile" class="visually-hidden" type="file" accept=".zip,application/zip">
+      </div>
+      <div id="deckState" class="deck-state"></div>
+      <div class="row deck-listhead">
+        <h3>可用簡報</h3>
+        <button id="deckRefresh" type="button">重新整理</button>
+      </div>
+      <div class="msg" id="deckListMsg" role="alert"></div>
+      <div class="deck-table">
+        <table>
+          <thead><tr><th>標題</th><th>id / 版本</th><th>狀態</th><th>上傳時間</th><th>操作</th></tr></thead>
+          <tbody id="deckList"><tr><td colspan="5" class="hint">載入中…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const fmt = (ms) => new Date(ms).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+async function api(path, opts = {}) {
+  const r = await fetch(path, { credentials: 'same-origin', headers: { 'content-type': 'application/json' }, ...opts });
+  let d = {}; try { d = await r.json(); } catch {}
+  return { ok: r.ok, status: r.status, data: d };
+}
+function el(tag, attrs = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) { if (k.startsWith('on')) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v); }
+  for (const k of kids.flat()) if (k != null) e.append(k.nodeType ? k : document.createTextNode(String(k)));
+  return e;
+}
+async function copy(text, btn) {
+  try { await navigator.clipboard.writeText(text); } catch { prompt('請複製', text); return; }
+  const t = btn.textContent; btn.textContent = '已複製'; setTimeout(() => (btn.textContent = t), 1500);
+}
+const joinLink = (code) => `${location.origin}/?code=${code}`;
+const presenterPage = (code) => `/live.html?code=${code}`;
+
+// ---- 登入 ----
+async function showLogin() {
+  $('app').hidden = true; $('login').hidden = false;
+  const { data: cfg } = await api('/api/auth/config');
+  $('secretLink').hidden = !cfg.secretEnabled;
+  $('devForm').hidden = !cfg.devLogin;
+  if (!cfg.googleClientId) { $('noGoogle').hidden = false; return; }
+  const s = document.createElement('script');
+  s.src = 'https://accounts.google.com/gsi/client'; s.async = true;
+  s.onload = () => {
+    google.accounts.id.initialize({ client_id: cfg.googleClientId, callback: onCredential, ux_mode: 'popup' });
+    google.accounts.id.renderButton($('gbtn'), { theme: 'filled_black', size: 'large', text: 'signin_with', shape: 'pill', locale: 'zh-TW' });
+  };
+  s.onerror = () => { $('loginMsg').textContent = '無法載入 Google 登入元件，請檢查網路'; };
+  document.head.append(s);
+}
+$('devForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const r = await api('/api/dev/login', { method: 'POST', body: JSON.stringify({ email: $('devEmail').value }) });
+  if (!r.ok) { $('loginMsg').textContent = r.data.error || '登入失敗'; return; }
+  start();
+});
+async function onCredential(resp) {
+  $('loginMsg').textContent = '驗證中…';
+  const r = await api('/api/auth/google', { method: 'POST', body: JSON.stringify({ credential: resp.credential }) });
+  if (!r.ok) { $('loginMsg').textContent = r.data.error || '登入失敗'; return; }
+  $('loginMsg').textContent = '';
+  start();
+}
+$('logout').onclick = async () => {
+  await api('/api/auth/logout', { method: 'POST' });
+  try { google.accounts.id.disableAutoSelect(); } catch {}
+  location.reload();
+};
+
+// ---- 登入後 ----
+let me = null;
+let availableDecks = [];
+async function start() {
+  const r = await api('/api/me');
+  if (!r.ok) return showLogin();
+  me = r.data;
+  $('login').hidden = true; $('app').hidden = false;
+  $('meText').textContent = `${me.name}（${me.email}）`;
+  $('adminSec').hidden = !me.isAdmin;
+  $('aiSec').hidden = !me.isAdmin;
+  loadRooms();
+  loadDecks();
+  if (me.isAdmin) { loadPresenters(); loadAi(); }
+}
+
+async function loadDecks() {
+  const select = $('deckSelect');
+  const builtin = select.options[0];
+  select.replaceChildren(builtin);
+  $('deckMsg').textContent = '';
+  availableDecks = [];
+  try {
+    const r = await api('/api/decks?include=builtin');
+    if (!r.ok) throw new Error(typeof r.data?.error === 'string' ? r.data.error : `HTTP ${r.status}`);
+    const decks = r.data?.decks;
+    if (!Array.isArray(decks)) throw new Error('簡報清單格式不正確');
+    for (const deck of decks) {
+      if (!deck || deck.state !== 'ready' || typeof deck.id !== 'string' || !deck.id || typeof deck.version !== 'string' || !deck.version) continue;
+      const option = document.createElement('option');
+      option.value = String(availableDecks.length);
+      const title = typeof deck.title === 'string' ? deck.title : '';
+      option.textContent = `${title}（${deck.id} / ${deck.version}${deck.builtin === true ? "・內建" : ""}）`;
+      select.append(option);
+      availableDecks.push({ deckId: deck.id, version: deck.version });
+    }
+  } catch (error) {
+    const reason = error instanceof Error && error.message ? `：${error.message}` : '';
+    $('deckMsg').textContent = `簡報清單載入失敗${reason}。仍可用內建範例建場。`;
+  }
+}
+
+$('create').onclick = async () => {
+  $('createMsg').textContent = '';
+  const selectedValue = $('deckSelect').value;
+  const selectedIndex = selectedValue === '' ? -1 : Number(selectedValue);
+  const selectedDeck = Number.isInteger(selectedIndex) && selectedIndex >= 0 ? availableDecks[selectedIndex] : null;
+  if (selectedValue !== '' && !selectedDeck) { $('createMsg').textContent = '簡報清單已變動，請重新選擇簡報。'; return; }
+  const body = selectedDeck ? { deckId: selectedDeck.deckId, version: selectedDeck.version } : {};
+  const r = await api('/api/rooms', { method: 'POST', body: JSON.stringify(body) });
+  if (!r.ok) { $('createMsg').textContent = r.data.error || '建立失敗'; return; }
+  $('newroom').hidden = false;
+  $('newCode').textContent = r.data.code;
+  $('newJoin').value = joinLink(r.data.code);
+  $('newOpen').href = presenterPage(r.data.code);
+  loadRooms();
+};
+document.querySelectorAll('[data-copy]').forEach((b) => b.addEventListener('click', () => copy($(b.dataset.copy).value, b)));
+
+async function loadRooms() {
+  const r = await api('/api/my/rooms');
+  const tb = $('rooms');
+  if (!r.ok) { tb.replaceChildren(el('tr', {}, el('td', { colspan: 5, class: 'hint' }, r.data.error || '載入失敗'))); return; }
+  if (!r.data.rooms.length) { tb.replaceChildren(el('tr', {}, el('td', { colspan: 5, class: 'hint' }, '目前沒有進行中的場次'))); return; }
+  tb.replaceChildren(...r.data.rooms.map((x) => {
+    const linkBtn = el('button', { type: 'button', onclick: async (e) => {
+      if (!confirm('產生一條新的備援講師連結？持有者可以控制翻頁與刪除留言。')) return;
+      const k = await api(`/api/rooms/${x.code}/link`, { method: 'POST', body: '{}' });
+      if (!k.ok) { alert(k.data.error || '產生失敗'); return; }
+      copy(`${location.origin}/live.html?code=${x.code}#key=${encodeURIComponent(k.data.key)}`, e.target);
+    } }, '產生備援講師連結');
+    return el('tr', {},
+      el('td', {}, el('span', { class: 'code' }, x.code)),
+      el('td', {}, fmt(x.createdAt)),
+      el('td', {}, fmt(x.expiresAt)),
+      el('td', {}, `${x.count} 人`),
+      el('td', {},
+        el('a', { class: 'btn', href: presenterPage(x.code) }, '開啟講師畫面'),
+        el('button', { type: 'button', onclick: (e) => copy(joinLink(x.code), e.target) }, '複製加入連結'),
+        linkBtn));
+  }));
+}
+
+// ---- 管理者：講師名單 ----
+async function loadPresenters(list) {
+  if (!list) { const r = await api('/api/admin/presenters'); if (!r.ok) { $('adminMsg').textContent = r.data.error; return; } list = r.data.presenters; }
+  $('presenters').replaceChildren(...(list.length ? list.map((p) => el('tr', {},
+    el('td', {}, p.email), el('td', { class: 'hint' }, p.addedBy || ''), el('td', { class: 'hint' }, fmt(p.addedAt)),
+    el('td', {}, el('button', { type: 'button', onclick: async () => {
+      if (!confirm(`將 ${p.email} 移出講師名單？`)) return;
+      const r = await api(`/api/admin/presenters?email=${encodeURIComponent(p.email)}`, { method: 'DELETE' });
+      if (r.ok) loadPresenters(r.data.presenters); else $('adminMsg').textContent = r.data.error || '移除失敗';
+    } }, '移除')))) : [el('tr', {}, el('td', { colspan: 4, class: 'hint' }, '名單是空的；管理者本身不需要加入'))]));
+}
+$('addForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  $('adminMsg').textContent = '';
+  const r = await api('/api/admin/presenters', { method: 'POST', body: JSON.stringify({ email: $('addEmail').value }) });
+  if (!r.ok) { $('adminMsg').textContent = r.data.error || '加入失敗'; return; }
+  $('addEmail').value = '';
+  loadPresenters(r.data.presenters);
+});
+
+// ---- 管理者：AI 問答設定（S8）----
+// 金鑰只送出、不讀回：伺服器只回「是否已設定、來源、末 4 碼、模型」
+function renderAi(s) {
+  if (!s || typeof s !== 'object') return;
+  const src = s.source === 'admin' ? '網頁設定' : s.source === 'env' ? '部署環境變數' : '';
+  const tail = s.last4 ? `（末 4 碼 ${s.last4}）` : '';
+  const who = s.source === 'admin' && s.updatedBy ? `，${s.updatedBy} 於 ${fmt(s.updatedAt)} 更新` : '';
+  $('aiStatus').textContent = s.configured
+    ? `已設定：來源為${src}${tail}${who}。模型：${s.model}`
+    : `尚未設定金鑰：研習者按「問 AI」會看到「AI 問答未設定」。模型：${s.model}`;
+  $('aiClear').hidden = s.source !== 'admin' && s.modelSource !== 'admin';
+}
+async function loadAi() {
+  const r = await api('/api/admin/ai');
+  if (!r.ok) { $('aiStatus').textContent = r.data.error || '載入失敗'; return; }
+  renderAi(r.data);
+}
+$('aiForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  $('aiMsg').textContent = '';
+  const r = await api('/api/admin/ai', { method: 'PUT', body: JSON.stringify({ key: $('aiKey').value, model: $('aiModel').value }) });
+  $('aiKey').value = '';
+  if (!r.ok) { $('aiMsg').textContent = r.data.error || '儲存失敗'; return; }
+  $('aiModel').value = '';
+  $('aiMsg').textContent = '已儲存';
+  renderAi(r.data);
+});
+$('aiClear').onclick = async () => {
+  if (!confirm('清除網頁設定的 AI 金鑰與模型？（若部署環境變數有金鑰，會改用它）')) return;
+  $('aiMsg').textContent = '';
+  const r = await api('/api/admin/ai', { method: 'DELETE' });
+  if (!r.ok) { $('aiMsg').textContent = r.data.error || '清除失敗'; return; }
+  $('aiMsg').textContent = '已清除';
+  renderAi(r.data);
+};
+
+start();
+</script>
+<script src="/admin-decks.js"></script>
+</html>

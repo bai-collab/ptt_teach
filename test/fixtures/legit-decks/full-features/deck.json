@@ -1,0 +1,25 @@
+{
+  "contract": 1,
+  "id": "full-features-test",
+  "title": "合格功能樣本（S4-A）",
+  "version": "2026-10-17",
+  "entry": "index.html",
+  "runtime": "timeline",
+  "segments": [
+    { "group": "功能", "title": "Media and data", "duration": 5 },
+    { "group": "功能", "title": "Modules", "duration": 5 }
+  ],
+  "pages": [
+    { "type": "anim", "seg": 0, "text": "第 1 段：mp3、mp4、fetch 自己的 JSON、data: 圖片與 data: 字型都在新 CSP 下可用。" },
+    { "type": "html", "path": "pages/about.html", "title": "About page", "text": "簡報包內的 html 頁，載入共用 CSS。" },
+    { "type": "anim", "seg": 1, "text": "第 2 段：兩層 module 鏈（main → lib/sync → lib/clock）。" },
+    {
+      "type": "disc",
+      "kind": "vote",
+      "kicker": "測試｜投票",
+      "title": "合格功能樣本是否正常？",
+      "prompt": "確認媒體、JSON、data: 資源與 module 都顯示 ok。",
+      "options": ["正常", "有問題"]
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>m07-base-uri 改寫相對路徑</title>
+</head>
+<body>
+<main><h1>m07-base-uri</h1><p>malicious sample（改寫相對路徑）</p></main>
+<script type="module">
+
+const DEF = { canaryHttp: "http://127.0.0.1:8873", canaryUdpPort: 8874, mainOrigin: "http://localhost:8871", navTarget: "http://127.0.0.1:8873/nav", mode: "real" };
+const T = Object.assign({}, DEF, (typeof window !== "undefined" && window.__pttTargets) || {});
+const C = T.canaryHttp;
+const DURATION = 10;
+const embedded = window.parent !== window;
+const mark = (k, v) => { try { document.body.dataset[k] = String(v); } catch {} };
+const render = (t) => { t = Math.max(0, Math.min(DURATION, Number(t) || 0)); try { document.body.dataset.t = String(t); } catch {} };
+addEventListener("message", (e) => { if (e.source !== window.parent) return; const m = e.data; if (!m || m.ptt !== 1 || m.type !== "seek" || typeof m.t !== "number" || !Number.isFinite(m.t)) return; render(m.t); });
+const sendReady = () => { if (embedded) { try { parent.postMessage({ ptt: 1, type: "ready", duration: DURATION }, "*"); } catch {} } };
+render(0);
+
+async function attack() {
+
+  const b = document.createElement("base"); b.href = C + "/m07base/"; document.head.append(b);
+  // 相對請求：base 生效 → 送到收件端；base-uri 擋下 → 送到簡報主機（404）
+  fetch("m07probe", { mode: "no-cors" }).then(() => mark("baseFetch", "done"), (e) => mark("baseFetch", e.name));
+}
+// 使用者啟用變體：測試會以真實滑鼠點擊 iframe，觸發需要啟用的攻擊（彈窗、對話框、下載、頂層導覽、權限）再跑一次
+document.addEventListener("click", () => { attack().catch((e) => mark("attackClickError", e && e.name)); });
+attack().catch((e) => mark("attackError", e && e.name)).finally(sendReady);
+</script>
+</body>
+</html>

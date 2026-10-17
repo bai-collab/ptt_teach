@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ptt-teach/deck.schema.json",
+  "title": "ptt_teach 動畫簡報契約 deck.json v1",
+  "description": "說明見 docs/deck-contract.md。所有字串在平台端一律以 textContent 顯示，不得含 HTML。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract", "id", "title", "version", "entry", "runtime", "pages"],
+  "properties": {
+    "contract": { "const": 1 },
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,47}$" },
+    "title": { "$ref": "#/$defs/text80" },
+    "version": { "type": "string", "pattern": "^[0-9A-Za-z][0-9A-Za-z.-]{0,31}$" },
+    "entry": { "$ref": "#/$defs/path" },
+    "runtime": { "enum": ["timeline", "static"] },
+    "segments": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["title", "duration"],
+        "properties": {
+          "group": { "$ref": "#/$defs/text40" },
+          "title": { "$ref": "#/$defs/text40" },
+          "duration": { "type": "number", "exclusiveMinimum": 0, "maximum": 600 }
+        }
+      }
+    },
+    "pages": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "oneOf": [
+          { "$ref": "#/$defs/animPage" },
+          { "$ref": "#/$defs/htmlPage" },
+          { "$ref": "#/$defs/discPage" }
+        ]
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "runtime": { "const": "timeline" } } },
+      "then": { "required": ["segments"] }
+    },
+    {
+      "if": { "properties": { "runtime": { "const": "static" } } },
+      "then": { "not": { "required": ["segments"] } }
+    }
+  ],
+  "$defs": {
+    "text40": { "type": "string", "minLength": 1, "maxLength": 40 },
+    "text80": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "text200": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "path": {
+      "type": "string",
+      "maxLength": 200,
+      "pattern": "^(?!/)(?!.*\\.\\.)(?!.*//)[A-Za-z0-9._/-]+\\.html$"
+    },
+    "pageText": {
+      "description": "本頁重點文字，S8 單頁問答的資料來源；沒有就不開放提問。",
+      "type": "string",
+      "maxLength": 2000
+    },
+    "animPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "seg"],
+      "properties": {
+        "type": { "const": "anim" },
+        "seg": { "type": "integer", "minimum": 0, "maximum": 99 },
+        "text": { "$ref": "#/$defs/pageText" }
+      }
+    },
+    "htmlPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "path"],
+      "properties": {
+        "type": { "const": "html" },
+        "path": { "$ref": "#/$defs/path" },
+        "title": { "$ref": "#/$defs/text40" },
+        "text": { "$ref": "#/$defs/pageText" }
+      }
+    },
+    "discPage": {
+      "type": "object",
+      "required": ["type", "kind", "title"],
+      "properties": { "type": { "const": "disc" } },
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "disc" },
+            "kind": { "const": "vote" },
+            "kicker": { "$ref": "#/$defs/text40" },
+            "title": { "$ref": "#/$defs/text80" },
+            "prompt": { "$ref": "#/$defs/text200" },
+            "text": { "$ref": "#/$defs/pageText" },
+            "options": { "type": "array", "minItems": 2, "maxItems": 8, "items": { "$ref": "#/$defs/text40" } }
+          },
+          "required": ["options"]
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "disc" },
+            "kind": { "const": "wall" },
+            "kicker": { "$ref": "#/$defs/text40" },
+            "title": { "$ref": "#/$defs/text80" },
+            "prompt": { "$ref": "#/$defs/text200" },
+            "text": { "$ref": "#/$defs/pageText" }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "disc" },
+            "kind": { "const": "map" },
+            "kicker": { "$ref": "#/$defs/text40" },
+            "title": { "$ref": "#/$defs/text80" },
+            "prompt": { "$ref": "#/$defs/text200" },
+            "text": { "$ref": "#/$defs/pageText" },
+            "nodes": { "type": "array", "minItems": 2, "maxItems": 12, "items": { "$ref": "#/$defs/text40" } },
+            "tags": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 6,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["label", "color"],
+                "properties": {
+                  "label": { "$ref": "#/$defs/text40" },
+                  "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" }
+                }
+              }
+            }
+          },
+          "required": ["nodes", "tags"]
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "disc" },
+            "kind": { "const": "cols" },
+            "kicker": { "$ref": "#/$defs/text40" },
+            "title": { "$ref": "#/$defs/text80" },
+            "prompt": { "$ref": "#/$defs/text200" },
+            "text": { "$ref": "#/$defs/pageText" },
+            "columns": { "type": "array", "minItems": 2, "maxItems": 4, "items": { "$ref": "#/$defs/text40" } }
+          },
+          "required": ["columns"]
+        }
+      ]
+    }
+  }
+}

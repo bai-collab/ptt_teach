@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+<script type="application/ecmascript"><![CDATA[
+(function(){
+  var r = {};
+  try { r.origin = String(self.origin); } catch (e) { r.origin = "err:" + e.name; }
+  try { void document.cookie; r.cookie = "readable"; } catch (e) { r.cookie = e.name; }
+  var def = { canaryHttp: "http://127.0.0.1:8873", mainOrigin: "http://localhost:8871" };
+  var T = (window.__pttTargets) || def;
+  try { fetch(T.canaryHttp + "/m13-svg", { mode: "no-cors" }).then(function(){ r.fetch = "sent"; }, function(e){ r.fetch = e.name; }); } catch (e) { r.fetch = e.name; }
+  try { fetch(T.mainOrigin + "/api/rooms", { credentials: "include", mode: "no-cors" }).then(function(){ r.mainapi = "sent"; }, function(e){ r.mainapi = e.name; }); } catch (e) { r.mainapi = e.name; }
+  window.__m13 = r;
+})();
+]]></script>
+<text x="4" y="32">svg</text>
+</svg>

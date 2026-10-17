@@ -1,0 +1,42 @@
+# 自動產生：node scripts/build-builtin-decks.mjs（來源 deck-host/wrangler.toml）。請勿手動修改。
+# 正式部署（方案 B：不使用 R2，簡報上傳停用，只提供內建簡報）。
+# 簡報主機（S3d-B）：只提供簡報庫中 ready／disabled 簡報的清單內檔案，與主站不同 origin。
+# - 只綁定主站 Worker（ptt-teach）的 Catalog DO（script_name），並只呼叫唯讀方法 resolveAsset；不綁 Auth DO、不讀登入 cookie。
+# - 與主站共用 R2 bucket DECKS（只讀）。
+# 本機：與主站各自執行 wrangler dev（兩個程序透過 wrangler 的 dev registry 連到主站的 Catalog DO），
+#       並使用同一個 --persist-to，讓兩邊看到同一份本機 R2 資料。
+name = "ptt-teach-deck-host"
+main = "src/index.js"
+# 與主站相同；不可晚於本機 wrangler 內附 workerd 支援的日期
+compatibility_date = "2026-08-15"
+# 部署時保留在 Cloudflare 後台設定的變數（MAIN_ORIGIN），不被這份檔案覆蓋（需在所有 [table] 之前）
+keep_vars = true
+
+# 內建簡報（方案 B）：靜態檔來源是專案的 builtin-decks/。run_worker_first＝所有請求先經 Worker，
+# 只放行 src/builtin-decks.generated.js 登記的代號＋路徑並加上完整安全標頭；靜態檔不直接對外（deck.json 也不提供）。
+[assets]
+directory = "../builtin-decks"
+binding = "ASSETS"
+run_worker_first = true
+# 不做 index.html／尾斜線轉址：Worker 以完整路徑讀取清單內的檔案
+html_handling = "none"
+
+[[durable_objects.bindings]]
+name = "CATALOG"
+class_name = "Catalog"
+script_name = "ptt-teach"
+
+
+# 公開設定（S4-A）。MAIN_ORIGIN 刻意不寫在這裡（寫在這裡會在每次部署時蓋掉後台的值）：
+# MAIN_ORIGIN：主站的精確 origin（例：https://<主站網域>，不加路徑與結尾斜線），用於 CSP frame-ancestors。
+#   正式環境只接受 https、只接受單一 origin、不得與簡報主機同主機名；未設定或不合格 → frame-ancestors 'none'（fail closed，簡報無法被嵌入）。
+#   本機：wrangler dev -c deck-host/wrangler.toml 不會讀專案根目錄的 .dev.vars，所以啟動時一律以
+#   --var ENVIRONMENT:development --var MAIN_ORIGIN:http://localhost:<主站埠> 傳入（見 README）。
+#   只有 ENVIRONMENT=development 且請求主機名是迴環位址時，MAIN_ORIGIN 未設定才會用預設值 http://localhost:8801。
+[vars]
+ENVIRONMENT = "production"
+
+# 本機：簡報主機用 127.0.0.1（主站用 localhost），主機名不同＝不同站，cookie 不共用
+[dev]
+ip = "127.0.0.1"
+port = 8802

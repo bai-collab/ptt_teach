@@ -1,0 +1,32 @@
+{
+  "contract": 1,
+  "id": "m11-dos",
+  "title": "量測：忙碌與洪泛",
+  "version": "2026-10-17",
+  "entry": "index.html",
+  "runtime": "timeline",
+  "segments": [
+    {
+      "group": "測試",
+      "title": "A",
+      "duration": 10
+    },
+    {
+      "group": "測試",
+      "title": "B",
+      "duration": 10
+    }
+  ],
+  "pages": [
+    {
+      "type": "anim",
+      "seg": 0,
+      "text": "第 1 段"
+    },
+    {
+      "type": "anim",
+      "seg": 1,
+      "text": "第 2 段"
+    }
+  ]
+}

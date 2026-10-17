@@ -1,0 +1,21 @@
+{
+  "name": "ptt-teach",
+  "private": true,
+  "type": "module",
+  "description": "多簡報研習互動平台（Cloudflare Worker + Durable Object，不含 LLM）",
+  "scripts": {
+    "dev": "wrangler dev",
+    "check": "node --check src/worker.js && node --check src/auth.js && node --check public/live.js && wrangler deploy --dry-run --outdir .wrangler/dry-run",
+    "smoke": "node scripts/smoke-ws.mjs",
+    "smoke:auth": "node scripts/smoke-auth.mjs",
+    "smoke:decks": "node scripts/smoke-decks.mjs",
+    "bench:begin": "node scripts/bench-begin.mjs",
+    "pack": "node scripts/pack-deck.mjs",
+    "e2e:malicious": "node scripts/e2e-malicious.mjs",
+    "test-auth": "node scripts/make-test-auth.mjs",
+    "test": "node --test \"test/*.test.mjs\""
+  },
+  "devDependencies": {
+    "wrangler": "4.147.0"
+  }
+}

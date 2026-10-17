@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>建立研習場次</title>
+<link rel="stylesheet" href="/style.css">
+<main class="card">
+  <h1>建立研習場次</h1>
+  <form id="f">
+    <p>輸入建場密語，系統會產生研習碼與講師專用連結。場次在 7 天後自動刪除，也可以在講師畫面提前結束。</p>
+    <label for="secret">建場密語</label>
+    <input id="secret" type="password" autocomplete="current-password" required>
+    <button class="primary" type="submit" style="width:100%;margin-top:14px">建立場次</button>
+    <p class="msg" id="msg" role="alert"></p>
+  </form>
+  <section id="out" hidden>
+    <p>研習碼</p>
+    <div class="big-code" id="code"></div>
+    <label for="join">給研習者的加入連結</label>
+    <div class="row"><input id="join" readonly><button type="button" data-copy="join">複製</button></div>
+    <label for="pres">講師專用連結（請勿分享）</label>
+    <div class="row"><input id="pres" readonly><button type="button" data-copy="pres">複製</button></div>
+    <p class="hint" id="exp"></p>
+    <p class="hint">講師連結內含金鑰；擁有它的人都能控制翻頁與刪除留言。請自己保存，不要貼到公開群組。</p>
+    <a class="primary" id="go" href="#" style="display:inline-block;margin-top:8px">開啟講師畫面 ›</a>
+  </section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+$('f').addEventListener('submit',async e=>{
+  e.preventDefault();
+  $('msg').textContent='建立中…';
+  try{
+    const r=await fetch('/api/rooms',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({secret:$('secret').value})});
+    const d=await r.json();
+    if(!r.ok){$('msg').textContent=d.error||'建立失敗';return}
+    $('f').hidden=true;$('out').hidden=false;
+    $('code').textContent=d.code;
+    $('join').value=location.origin+'/?code='+d.code;
+    const pres=location.origin+'/live.html?code='+d.code+'#key='+encodeURIComponent(d.key);
+    $('pres').value=pres;$('go').href=pres;
+    $('exp').textContent='自動刪除時間：'+new Date(d.expiresAt).toLocaleString('zh-TW');
+  }catch{$('msg').textContent='連線失敗，請稍後再試'}
+});
+document.querySelectorAll('[data-copy]').forEach(b=>b.addEventListener('click',async()=>{
+  const el=$(b.dataset.copy);el.select();
+  try{await navigator.clipboard.writeText(el.value);b.textContent='已複製'}catch{document.execCommand('copy');b.textContent='已複製'}
+  setTimeout(()=>b.textContent='複製',1500);
+}));
+</script>
+</html>

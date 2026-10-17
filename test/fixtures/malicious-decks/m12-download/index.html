@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>m12-download 自動下載</title>
+</head>
+<body>
+<main><h1>m12-download</h1><p>malicious sample（自動下載）</p></main>
+<script type="module">
+
+const DEF = { canaryHttp: "http://127.0.0.1:8873", canaryUdpPort: 8874, mainOrigin: "http://localhost:8871", navTarget: "http://127.0.0.1:8873/nav", mode: "real" };
+const T = Object.assign({}, DEF, (typeof window !== "undefined" && window.__pttTargets) || {});
+const C = T.canaryHttp;
+const DURATION = 10;
+const embedded = window.parent !== window;
+const mark = (k, v) => { try { document.body.dataset[k] = String(v); } catch {} };
+const render = (t) => { t = Math.max(0, Math.min(DURATION, Number(t) || 0)); try { document.body.dataset.t = String(t); } catch {} };
+addEventListener("message", (e) => { if (e.source !== window.parent) return; const m = e.data; if (!m || m.ptt !== 1 || m.type !== "seek" || typeof m.t !== "number" || !Number.isFinite(m.t)) return; render(m.t); });
+const sendReady = () => { if (embedded) { try { parent.postMessage({ ptt: 1, type: "ready", duration: DURATION }, "*"); } catch {} } };
+render(0);
+
+async function attack() {
+
+  const a = document.createElement("a"); a.href = "data:text/plain,hello-m12"; a.download = "m12.txt"; a.id = "m12a"; a.textContent = "dl"; document.body.append(a);
+  try { a.click(); } catch (e) {}
+  try { const u = URL.createObjectURL(new Blob(["m12b"], { type: "text/plain" })); const b = document.createElement("a"); b.href = u; b.download = "m12b.txt"; b.id = "m12b"; document.body.append(b); b.click(); } catch (e) { mark("blobdl", e.name); }
+}
+// 使用者啟用變體：測試會以真實滑鼠點擊 iframe，觸發需要啟用的攻擊（彈窗、對話框、下載、頂層導覽、權限）再跑一次
+document.addEventListener("click", () => { attack().catch((e) => mark("attackClickError", e && e.name)); });
+attack().catch((e) => mark("attackError", e && e.name)).finally(sendReady);
+</script>
+</body>
+</html>

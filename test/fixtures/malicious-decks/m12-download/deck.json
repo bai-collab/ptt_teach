@@ -1,0 +1,22 @@
+{
+  "contract": 1,
+  "id": "m12-download",
+  "title": "自動下載",
+  "version": "2026-10-17",
+  "entry": "index.html",
+  "runtime": "timeline",
+  "segments": [
+    {
+      "group": "測試",
+      "title": "Attack",
+      "duration": 10
+    }
+  ],
+  "pages": [
+    {
+      "type": "anim",
+      "seg": 0,
+      "text": "惡意樣本：攻擊在執行時才發生。"
+    }
+  ]
+}

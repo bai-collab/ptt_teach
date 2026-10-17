@@ -1,0 +1,28 @@
+{
+  "contract": 1,
+  "id": "multi-file-test",
+  "title": "多檔測試簡報",
+  "version": "2026-10-16",
+  "entry": "index.html",
+  "runtime": "timeline",
+  "segments": [
+    { "group": "測試", "title": "Segment A", "duration": 6 },
+    { "group": "測試", "title": "Segment B", "duration": 8 },
+    { "group": "測試", "title": "Segment C", "duration": 6 }
+  ],
+  "pages": [
+    { "type": "anim", "seg": 0, "text": "Segment A：外部 module、CSS、字型與圖片都載入後，時間顯示會跟著 seek 改變。" },
+    { "type": "html", "path": "slides/intro.html", "title": "Intro slide", "text": "純 HTML 頁，載入共用 CSS 與圖片。" },
+    { "type": "anim", "seg": 1, "text": "Segment B：同一個動畫頁的第二段。" },
+    {
+      "type": "disc",
+      "kind": "vote",
+      "kicker": "測試｜投票",
+      "title": "多檔簡報是否正常顯示？",
+      "prompt": "確認時間顯示、字型與圖片。",
+      "options": ["正常", "有問題"]
+    },
+    { "type": "anim", "seg": 2, "text": "Segment C：最後一段。" },
+    { "type": "html", "path": "slides/summary.html", "title": "Summary slide" }
+  ]
+}
