@@ -179,6 +179,7 @@ function onMessage(m) {
       me = m.me;
       PAGES = buildPages(m.deck) || []; // deck 為 null 或不合格：進入「簡報資料無法載入」狀態
       SEGS = PAGES.length ? buildSegs(m.deck) : [];
+      buildTimeline();
       ENTRY = PAGES.length && safeRel(m.deck.entry) ? m.deck.entry : null;
       setPres(m.pres, m.now);
       notes.clear(); m.notes.forEach((n) => notes.set(n.id, n));
@@ -316,12 +317,106 @@ addEventListener('keydown', (e) => {
   else if (e.key === ' ' && e.target.tagName !== 'BUTTON') { e.preventDefault(); togglePlay(); }
 });
 
+// ===== 底部列收合：標註工具（#inkTools）與進度條（.seekrow）各自記在 localStorage，預設收起 =====
+const uiGet = (k) => { try { return localStorage.getItem(k) === '1'; } catch { return false; } };
+const uiSet = (k, v) => { try { localStorage.setItem(k, v ? '1' : '0'); } catch { /* 不可用時只留在記憶體 */ } };
+let inkOpen = uiGet('ptt.ui.ink'), seekOpen = uiGet('ptt.ui.seek');
+let inkAvail = false; // 這一頁本來就會出現標註工具（討論頁所有人、動畫頁只有講師）
+function applyUi() {
+  const disc = !$('composer').hidden; // 留言欄永遠不收起，只收 #inkTools 與分隔線
+  const hasPages = PAGES.length > 0;
+  const tb = [['toggleInk', '標註工具', inkAvail, inkOpen], ['toggleSeek', '進度條', hasPages, seekOpen]];
+  for (const [id, name, avail, open] of tb) {
+    const b = $(id);
+    b.hidden = !avail;
+    b.setAttribute('aria-expanded', String(open));
+    b.textContent = `${name} ${open ? '▾' : '▸'}`;
+  }
+  if (tool && !(inkAvail && inkOpen)) setTool(null); // 收起或不可用時結束畫筆／文字，避免看不到按鈕卻還在畫
+  $('inkTools').hidden = !(inkAvail && inkOpen);
+  $('toolSep').hidden = !(disc && inkAvail && inkOpen);
+  $('tools').hidden = !(disc || (inkAvail && inkOpen)); // 整列沒有可見內容就不佔高度
+  $('seekrow').hidden = !(hasPages && seekOpen);
+}
+$('toggleInk').onclick = () => { inkOpen = !inkOpen; uiSet('ptt.ui.ink', inkOpen); applyUi(); };
+$('toggleSeek').onclick = () => { seekOpen = !seekOpen; uiSet('ptt.ui.seek', seekOpen); applyUi(); };
+
+// 播放進度條：涵蓋整份簡報的全域時間軸。anim 頁寬度＝段長（秒），其餘頁給固定 SLOT 虛擬秒，讓拖曳可停在討論頁
+const SLOT = 3;
+const seekEl = $('seek'), seekMarks = $('seekMarks');
+let TL = [];          // 每頁區間 {page, start, len, anim, animBefore（此頁之前的動畫累計秒）}
+let TL_TOTAL = 0, ANIM_TOTAL = 0;
+let seeking = false;  // 拖曳中：frame 不把值彈回、也不推進自己的時鐘
+let seekBcAt = 0;     // 上次廣播 pres 的時間（拖曳節流用）
+const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
+const clearSeek = () => { seekEl.disabled = true; seekEl.value = 0; $('seekTime').textContent = ''; };
+// PAGES／SEGS 重建後重算時間軸與刻度（討論頁等非動畫頁用藍色區段、頁界用細刻度）
+function buildTimeline() {
+  TL = []; TL_TOTAL = 0; ANIM_TOTAL = 0;
+  PAGES.forEach((_, i) => {
+    const s = segOf(i), len = s ? s.len : SLOT;
+    TL.push({ page: i, start: TL_TOTAL, len, anim: !!s, animBefore: ANIM_TOTAL });
+    TL_TOTAL += len;
+    if (s) ANIM_TOTAL += len;
+  });
+  seekMarks.textContent = '';
+  TL.forEach((e) => {
+    const x = (v) => `${(v / TL_TOTAL) * 100}%`;
+    if (!e.anim) { const d = document.createElement('i'); d.className = 'seg-slot'; d.style.left = x(e.start); d.style.width = x(e.len); seekMarks.appendChild(d); }
+    if (e.page > 0) { const d = document.createElement('i'); d.className = 'seg-tick'; d.style.left = x(e.start); seekMarks.appendChild(d); }
+  });
+  if (!TL.length) { clearSeek(); return; }
+  seekEl.max = TL_TOTAL; seekEl.disabled = false;
+}
+// 顯示「動畫實際秒數 / 動畫總秒數」：實際秒數＝此頁之前的動畫累計＋此頁的 t（非動畫頁只算之前的累計）
+function showTime(page, t) {
+  const e = TL[page];
+  if (!e || !ANIM_TOTAL) { $('seekTime').textContent = ''; return; }
+  $('seekTime').textContent = `${(e.animBefore + (e.anim ? clamp(t, 0, e.len) : 0)).toFixed(1)} / ${ANIM_TOTAL.toFixed(1)}`;
+}
+const pageAt = (v) => { let i = 0; while (i + 1 < TL.length && TL[i + 1].start <= v) i++; return TL[i]; };
+// 跳到 page 的頁內 t：換頁時不把 t 歸 0；進到非動畫頁一定停止播放，其餘維持原本 playing
+function seekTo(page, t) {
+  const e = TL[page];
+  if (!e) return;
+  const changed = view.page !== page;
+  view.page = page;
+  if (e.anim) view.t = clamp(t, 0, Math.max(0, e.len - 0.45)); else { view.t = 0; view.playing = false; }
+  if (changed) reportState();
+}
+function seekInput(page, off, force) {
+  if (me.role !== 'presenter' && mode === 'follow') { setMode('free'); toast('已切換為自由觀看，可按「回到講師頁面」'); }
+  seekTo(page, off);
+  showTime(page, off);
+  const now = performance.now();
+  if (force || now - seekBcAt >= 120) { seekBcAt = now; broadcastPres(); } // 講師端約每 120ms 最多送一次
+}
+seekEl.addEventListener('pointerdown', () => { seeking = true; });
+addEventListener('pointerup', () => { seeking = false; });
+addEventListener('pointercancel', () => { seeking = false; });
+seekEl.addEventListener('input', () => {
+  const v = +seekEl.value, e = pageAt(v);
+  if (e) seekInput(e.page, v - e.start, false);
+});
+seekEl.addEventListener('change', () => { seekBcAt = performance.now(); broadcastPres(); }); // 放開時一定送一次
+// PageUp／PageDown：跳到上一頁／下一頁的起點（頁中間的 PageUp 先回本頁起點）
+seekEl.addEventListener('keydown', (ev) => {
+  if (ev.key !== 'PageUp' && ev.key !== 'PageDown') return;
+  ev.preventDefault();
+  const e = pageAt(+seekEl.value);
+  if (!e) return;
+  const p = ev.key === 'PageDown' ? e.page + 1 : (+seekEl.value > e.start + 0.2 ? e.page : e.page - 1);
+  if (!TL[p]) return;
+  seekEl.value = TL[p].start;
+  seekInput(p, 0, true);
+});
+
 let lastFrame = performance.now();
 function frame(now) {
   const dt = Math.max(0, (now - lastFrame) / 1000); lastFrame = now;
   // 自己的時鐘（講師／自由觀看）
   const s0 = segOf(view.page);
-  if (view.playing && s0) {
+  if (view.playing && s0 && !seeking) {
     view.t += dt;
     if (view.t >= s0.len - 0.45) { view.t = Math.max(0, s0.len - 0.45); view.playing = false; broadcastPres(); }
   }
@@ -334,6 +429,8 @@ function frame(now) {
     if (Math.abs(t - lastSeekT) > 0.001 || now - lastSeekAt > 400) { postSeek(s.a + t); lastSeekT = t; lastSeekAt = now; }
   }
   $('play').textContent = c.playing ? '暫停' : '播放';
+  const te = TL[c.page];
+  if (te && !seeking) { seekEl.value = te.start + (te.anim ? clamp(c.t, 0, te.len) : 0); showTime(c.page, c.t); } // 進度條跟著時鐘走
   requestAnimationFrame(frame);
 }
 
@@ -344,11 +441,12 @@ function renderUnavailable() {
   deck.style.visibility = 'visible';
   deckHold.hidden = false;
   deckHold.textContent = '簡報資料無法載入';
-  $('tools').hidden = true;
   $('composer').hidden = true;
-  $('toolSep').hidden = true;
+  inkAvail = false;
   setTool(null);
+  applyUi();
   $('prev').disabled = $('next').disabled = $('play').disabled = true;
+  clearSeek();
   $('pageInfo').textContent = '簡報資料無法載入';
   $('resetVote').hidden = true;
   $('askBtn').hidden = true; setAskOpen(false);
@@ -371,10 +469,10 @@ function renderPage(p) {
   deck.style.visibility = isDisc ? 'hidden' : 'visible';
   deckHold.hidden = !noFile;
   // 工具列：討論頁所有人都有；講師在動畫頁也有（只有標註工具，沒有留言欄）
-  $('tools').hidden = !(isDisc || me.role === 'presenter');
   $('composer').hidden = !isDisc;
-  $('toolSep').hidden = !isDisc;
+  inkAvail = isDisc || me.role === 'presenter';
   if (!canAnnotate(p)) setTool(null);
+  applyUi(); // #tools／#toolSep 的顯示交給 applyUi（留言欄不可被收起）
   $('play').disabled = !segOf(p);
   $('pageInfo').textContent = `${p + 1} / ${PAGES.length}・${pageTitle(p)}`;
   updateAsk(p);

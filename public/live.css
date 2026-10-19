@@ -10,8 +10,9 @@ body.live{height:100dvh;display:flex;flex-direction:column;overflow:hidden}
 .bar button,.tools button,.nav button{padding:.35em .95em;font-size:.9rem}
 #followBtn[aria-pressed="true"]{border-color:var(--green);color:var(--green)}
 #followBtn[aria-pressed="false"]{border-color:var(--yellow);color:var(--yellow)}
-.main{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:6px 12px}
-.stage{position:relative;aspect-ratio:16/9;width:min(100%, calc((100dvh - 190px) * 16 / 9));max-height:100%}
+/* 舞台吃滿 .main 扣掉 padding 後的實際剩餘空間（容器查詢單位＝內容框），維持 16:9 並置中；工具列／進度條列收合後剩多少用多少 */
+.main{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:6px 12px;container-type:size}
+.stage{position:relative;aspect-ratio:16/9;width:min(100cqw, calc(100cqh * 16 / 9))}
 .stage iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:var(--board-deep)}
 /* 過渡狀態：動畫尚未接上時的佔位（討論頁時隱藏）；標註層（z-index:2）仍蓋在上方 */
 .deck-hold{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-chalk);font-size:clamp(1.2rem,3vw,2.2rem);color:var(--chalk-dim);letter-spacing:.1em;pointer-events:none}
@@ -31,6 +32,22 @@ body.live{height:100dvh;display:flex;flex-direction:column;overflow:hidden}
 .nav{border-top:1px solid rgba(239,233,216,.12)}
 #pageInfo{font-family:var(--font-chalk);font-size:1.05rem}
 #followHint{color:var(--chalk-dim);font-size:.88rem}
+/* 播放進度條：獨佔 nav 的第二列（寬度不受頁名、按鈕文字變動影響，拖曳時才不會因換頁而位移）；黃色粗軌道畫在 #seekMarks（藍色區段＝討論頁等非動畫頁、細線＝頁界）＋圓拇指 */
+#toggleInk[aria-expanded="true"],#toggleSeek[aria-expanded="true"]{border-color:var(--yellow);color:var(--yellow)}
+.seekrow{display:flex;flex:1 0 100%;align-items:center;gap:12px}
+#seekWrap{position:relative;flex:1 1 200px;min-width:120px;height:20px}
+#seek{position:relative;z-index:1;-webkit-appearance:none;appearance:none;display:block;width:100%;height:20px;padding:0;margin:0;border:0;border-radius:0;background:transparent;cursor:pointer}
+#seek:disabled{opacity:.4;cursor:default}
+#seek::-webkit-slider-runnable-track{height:6px;background:transparent}
+#seek::-moz-range-track{height:6px;border:0;background:transparent}
+#seek::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;margin-top:-5px;border:2px solid var(--board-deep);border-radius:50%;background:var(--yellow)}
+#seek::-moz-range-thumb{box-sizing:border-box;width:16px;height:16px;border:2px solid var(--board-deep);border-radius:50%;background:var(--yellow)}
+#seekMarks{position:absolute;left:8px;right:8px;top:7px;height:6px;border-radius:3px;overflow:hidden;background:var(--yellow);pointer-events:none}
+#seek:disabled + #seekMarks{opacity:.4}
+#seekMarks i{position:absolute;top:0;bottom:0}
+#seekMarks .seg-slot{background:var(--blue)}
+#seekMarks .seg-tick{width:1px;background:var(--board-deep)}
+#seekTime{flex:none;width:8.5em;text-align:right;font-size:.82rem;font-variant-numeric:tabular-nums;color:var(--chalk-dim)}
 .tools{border-top:1px solid rgba(239,233,216,.12)}
 .tools input[type=text]{flex:1 1 220px;min-width:0}
 .tools select{max-width:11em}
@@ -106,5 +123,4 @@ body.live{height:100dvh;display:flex;flex-direction:column;overflow:hidden}
 
 @media (max-width:640px){
   .bar{font-size:.82rem;gap:6px 8px}
-  .stage{width:100%}
 }

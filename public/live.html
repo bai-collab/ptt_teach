@@ -64,8 +64,17 @@
   <button id="next" type="button">下一頁</button>
   <span id="pageInfo"></span>
   <button id="askBtn" type="button" hidden aria-expanded="false" aria-controls="askPanel">問 AI</button>
+  <button id="toggleInk" type="button" hidden aria-expanded="false" aria-controls="inkTools">標註工具 ▸</button>
+  <button id="toggleSeek" type="button" hidden aria-expanded="false" aria-controls="seekrow">進度條 ▸</button>
   <span class="spacer"></span>
   <span id="followHint"></span>
+  <div class="seekrow" id="seekrow" hidden>
+    <div id="seekWrap">
+      <input id="seek" type="range" min="0" max="1" step="0.1" value="0" aria-label="播放進度" disabled>
+      <div id="seekMarks" aria-hidden="true"></div>
+    </div>
+    <span id="seekTime"></span>
+  </div>
 </footer>
 <aside id="roster" hidden aria-label="研習者名單">
   <h2>研習者名單</h2>
